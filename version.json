@@ -1,0 +1,17 @@
+{
+  "app": "discipline-book",
+  "version": "1.0.0",
+  "notes": [
+    "نسخهٔ اول دفتر انضباطی: حضور و غیاب، رفتار، گزارش انضباطی و ورود از فایل JSON سیدا"
+  ],
+  "files": [
+    "index.html",
+    "sw.js",
+    "manifest.json",
+    "icon-192.png",
+    "icon-512.png",
+    "icon-maskable-512.png",
+    "apple-touch-icon.png",
+    "favicon.png"
+  ]
+}
