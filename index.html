@@ -10,6 +10,28 @@
 <meta name="theme-color" content="#2563eb">
 <meta name="cm-app" content="discipline-book">
 <script>
+/* جداسازی فضای ذخیره‌سازی: این برنامه با «مدیریت کلاسی» روی یک دامنه است؛ پس همهٔ کلیدها پیشوند می‌گیرند تا داده‌ها و حساب‌ها با هم قاطی نشوند */
+(function(){
+    var PFX = 'dsc1_';
+    function wrap(real){
+        var w = {
+            getItem: function(k){ return real.getItem(PFX + k); },
+            setItem: function(k, v){ real.setItem(PFX + k, v); },
+            removeItem: function(k){ real.removeItem(PFX + k); },
+            key: function(i){ var n = 0; for (var j = 0; j < real.length; j++) { var k = real.key(j); if (k && k.indexOf(PFX) === 0) { if (n === i) return k.slice(PFX.length); n++; } } return null; },
+            clear: function(){ var ks = []; for (var j = 0; j < real.length; j++) { var k = real.key(j); if (k && k.indexOf(PFX) === 0) ks.push(k); } ks.forEach(function(k){ real.removeItem(k); }); }
+        };
+        Object.defineProperty(w, 'length', { get: function(){ var n = 0; for (var j = 0; j < real.length; j++) { var k = real.key(j); if (k && k.indexOf(PFX) === 0) n++; } return n; } });
+        return w;
+    }
+    try {
+        var ls = wrap(window.localStorage), ss = wrap(window.sessionStorage);
+        Object.defineProperty(window, 'localStorage', { value: ls, configurable: true });
+        Object.defineProperty(window, 'sessionStorage', { value: ss, configurable: true });
+    } catch(e) {}
+})();
+</script>
+<script>
 /* قفل ورود: پیش از رسم صفحه بررسی می‌شود تا محتوای برنامه برای لحظه‌ای هم دیده نشود */
 (function(){
     window.__CM_USER = null; window.__CM_LOCKED = true;
@@ -1776,7 +1798,7 @@
             </div>
 
             <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px;padding:16px;border-top:1px dashed var(--border);">
-                📒 دفتر انضباطی - نسخهٔ <span id="appVersionLabel">۱.۰.۰</span><br>
+                📒 دفتر انضباطی - نسخهٔ <span id="appVersionLabel">۱.۰.۱</span><br>
                 🎨 طراح: یوسف معصومی
             </div>
         </div>
@@ -5046,7 +5068,7 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     /* ═══════════════════════════════════════════════════
        🔄 به‌روزرسانی از GitHub
        ═══════════════════════════════════════════════════ */
-    var APP_VERSION = '1.0.0';
+    var APP_VERSION = '1.0.1';
     var realLS = window.localStorage, UPD_KEY = 'cmupd_v1';
     var pendingUpdate = null;
 
