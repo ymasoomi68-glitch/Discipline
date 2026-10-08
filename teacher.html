@@ -106,11 +106,12 @@
     <label style="font-size:13px;font-weight:700;">نام شما (در پیام ارسالی نوشته می‌شود)</label>
     <input type="text" id="inTeacher" placeholder="مثلاً: خانم احمدی">
     <button class="btn block" id="btnSaveName">💾 ذخیره نام</button>
+    <button class="btn block" id="btnInstall2" style="background:#4f46e5;">📱 نصب روی این دستگاه</button>
     <button class="btn o block" id="btnImport">📥 ورود کلاس از فایل JSON سیدا</button>
     <button class="btn o block" id="btnManage">👥 مدیریت کلاس‌ها و دانش‌آموزان</button>
     <button class="btn o block" id="btnHistory">🕘 ارسال‌های قبلی</button>
     <button class="btn o block" data-close="ovSettings">بستن</button>
-    <p style="text-align:center;margin-top:12px;">نسخهٔ معلم ۱.۰.۰</p>
+    <p style="text-align:center;margin-top:12px;">نسخهٔ معلم ۱.۲.۰</p>
 </div></div>
 
 <!-- ورود JSON -->
@@ -143,7 +144,7 @@
 <!-- پیام ارسال -->
 <div class="ov" id="ovSend"><div class="sheet">
     <h2>📤 پیام آمادهٔ ارسال</h2>
-    <p>اگر منوی اشتراک‌گذاری باز نشد، پیام را کپی کنید و در شاد/ایتا/بله برای معاون بفرستید.</p>
+    <p>پیام کوتاه است؛ اگر منوی اشتراک‌گذاری باز نشد، کپی کنید و در شاد/ایتا/بله برای معاون بفرستید. خط دوم (DB2…) را پاک نکنید.</p>
     <div class="msgbox" id="sendMsg"></div>
     <button class="btn block" id="btnShare">📤 ارسال (انتخاب برنامه)</button>
     <button class="btn o block" id="btnCopy">📋 کپی پیام</button>
@@ -218,17 +219,17 @@
 
     /* ===== نمایش ===== */
     function render() {
-        var c = curCls(), m = $('main');
+        var c = curCls(), m = $('main'), ib = installBanner();
         $('whoLbl').textContent = cfg.teacher ? cfg.teacher : 'برنامهٔ معلم';
         if (!c) {
             $('bar').style.display = 'none';
-            m.innerHTML = '<div class="card"><div class="empty"><div class="big">📚</div><b>هنوز کلاسی ندارید</b><br>فایل JSON سیدا را که معاون داده وارد کنید.</div>' +
+            m.innerHTML = ib + '<div class="card"><div class="empty"><div class="big">📚</div><b>هنوز کلاسی ندارید</b><br>فایل JSON سیدا را که معاون داده وارد کنید.</div>' +
                 '<button class="btn block" id="e1">📥 ورود کلاس از فایل JSON سیدا</button><button class="btn o block" id="e2">➕ ساخت کلاس دستی</button></div>';
             $('e1').onclick = openImport; $('e2').onclick = function() { addClassForm(); };
             return;
         }
         cfg.cur = c.id;
-        var dm = dayMap(c), h = '';
+        var dm = dayMap(c), h = ib;
         h += '<div class="card"><div class="chips">' + classes.map(function(x) { return '<button class="chip' + (x.id === c.id ? ' on' : '') + '" data-c="' + x.id + '">' + esc(x.className) + '</button>'; }).join('') + '</div>';
         h += '<div class="datebar"><button class="sm" id="dPrev">◀</button><div class="d">' + describe(curDate) + '<small>' + (curDate === todayStr() ? 'امروز' : '<a href="#" id="dToday" style="color:#059669;">برگشت به امروز</a>') + '</small></div><button class="sm" id="dNext">▶</button></div></div>';
         var n = { present: 0, late: 0, absent: 0, none: 0 };
@@ -279,26 +280,20 @@
     };
 
     /* ===== پیام ارسال ===== */
-    var CODE = { present: 'p', late: 'l', absent_j: 'j', absent_u: 'u' };
-    function b64(str) { return btoa(unescape(encodeURIComponent(str))); }
-    function stKey(s) { var c = digits(s.codemelli || '').replace(/\D/g, ''); return c || 'n:' + norm((s.family || '') + ' ' + (s.name || '')); }
+    // کلید کوتاه دانش‌آموز: آخرین L رقم کد ملی (L طوری است که در کلاس یکتا باشد)
+    function pickL(c) {
+        var codes = c.students.map(function(s) { return digits(s.codemelli || '').replace(/\D/g, ''); }).filter(Boolean);
+        for (var L = 4; L <= 10; L++) { var seen = {}, ok = true; codes.forEach(function(x) { var k = x.slice(-L); if (seen[k]) ok = false; seen[k] = 1; }); if (ok) return L; }
+        return 10;
+    }
+    function sfx(s, L) { var c = digits(s.codemelli || '').replace(/\D/g, ''); return c ? c.slice(-L) : 'n:' + norm((s.family || '') + ' ' + (s.name || '')).replace(/[,|]/g, ' '); }
     function buildMessage(c, dm) {
-        var names = { absent_u: [], absent_j: [], late: [] }, np = 0, arr = [];
-        c.students.forEach(function(s) {
-            var v = dm[s.id] || 'present'; if (v === 'present') np++; else names[v].push(((s.family || '') + ' ' + (s.name || '')).trim());
-            arr.push([stKey(s), CODE[v]]);
-        });
-        var na = names.absent_u.length + names.absent_j.length;
-        var L = ['📋 گزارش حضور و غیاب', 'کلاس: ' + c.className, 'تاریخ: ' + describe(curDate)];
-        if (cfg.teacher) L.push('معلم: ' + cfg.teacher);
-        L.push('حاضر: ' + fa(np) + ' | غایب: ' + fa(na) + ' | تأخیر: ' + fa(names.late.length));
-        if (names.absent_u.length) L.push('❌ غایب غیرموجه: ' + names.absent_u.join('، '));
-        if (names.absent_j.length) L.push('📄 غایب موجه: ' + names.absent_j.join('، '));
-        if (names.late.length) L.push('⏰ تأخیر: ' + names.late.join('، '));
-        if (!na && !names.late.length) L.push('✅ همهٔ دانش‌آموزان حاضر');
-        var payload = { v: 1, c: c.className, g: c.gradeName || '', d: curDate, t: cfg.teacher || '', s: arr };
-        L.push('', '──────', 'DB1[' + b64(JSON.stringify(payload)) + ']');
-        return L.join('\n');
+        var L = pickL(c), u = [], j = [], l = [];
+        c.students.forEach(function(s) { var v = dm[s.id] || 'present'; if (v === 'absent_u') u.push(sfx(s, L)); else if (v === 'absent_j') j.push(sfx(s, L)); else if (v === 'late') l.push(sfx(s, L)); });
+        var na = u.length + j.length, p = curDate.split('/');
+        var head = (na || l.length ? '📋 ' : '✅ ') + c.className + ' | ' + fa(parseInt(p[2], 10)) + ' ' + MN[parseInt(p[1], 10) - 1] + ' | ' + (na || l.length ? 'غایب ' + fa(na) + '، تأخیر ' + fa(l.length) : 'همه حاضر');
+        var code = 'DB2|' + L + '|' + c.className.replace(/[|\n]/g, ' ') + '|' + curDate + '|' + u.join(',') + '|' + j.join(',') + '|' + l.join(',') + '|' + (cfg.teacher || '').replace(/[|\n]/g, ' ');
+        return head + '\n' + code;
     }
     var pendingMsg = '', pendingMeta = null;
     $('btnSend').onclick = function() {
@@ -309,7 +304,7 @@
             c.students.forEach(function(s) { if (!dm[s.id]) dm[s.id] = 'present'; }); saveA(); render();
         }
         pendingMsg = buildMessage(c, dm); pendingMeta = { c: c.className, d: curDate };
-        $('sendMsg').textContent = pendingMsg.replace(/DB1\[[^\]]+\]/, 'DB1[…کد…]');
+        $('sendMsg').textContent = pendingMsg;
         if (navigator.share) { doShare(); } else openOv('ovSend');
     };
     function markSent() { sent.push({ c: pendingMeta.c, d: pendingMeta.d, t: Date.now(), m: pendingMsg }); saveS(); render(); }
@@ -418,6 +413,29 @@
             if (!f[0] && !f[1]) { toast('نام لازم است'); return false; }
             var c = classes.filter(function(x) { return x.id === v; })[0]; c.students.push({ id: genId(), name: norm(f[0]), family: norm(f[1]), father: norm(f[2]), codemelli: digits(f[3]).replace(/\D/g, '') }); sortSt(c); saveC(); render(); setTimeout(function() { students(v); openOv('ovManage'); }, 50); }); }
         else if ((v = t.getAttribute('data-i'))) { var x = sent[+v]; if (x) copyText(x.m, function(ok) { toast(ok ? '📋 کپی شد' : 'کپی نشد'); }); }
+    });
+
+    /* ===== نصب روی دستگاه ===== */
+    var deferred = null, standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    var bannerOff = false;
+    try { bannerOff = S.getItem('nobanner') === '1'; } catch(e) {}
+    window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferred = e; render(); });
+    window.addEventListener('appinstalled', function() { deferred = null; standalone = true; render(); toast('✅ نصب شد'); });
+    function doInstall() {
+        if (standalone) { toast('برنامه همین حالا نصب است'); return; }
+        if (deferred) { deferred.prompt(); deferred.userChoice.then(function() { deferred = null; render(); }); return; }
+        if (isIOS) alert('در آیفون: دکمهٔ اشتراک‌گذاری (مربع با فلش) را در Safari بزنید و «Add to Home Screen» را انتخاب کنید.');
+        else alert('از منوی مرورگر (⋮) گزینهٔ «Install app» یا «Add to Home screen» را بزنید.');
+    }
+    $('btnInstall2').onclick = function() { closeOv('ovSettings'); doInstall(); };
+    function installBanner() {
+        if (standalone || bannerOff || (!deferred && !isIOS)) return '';
+        return '<div class="card" style="background:#eef2ff;display:flex;align-items:center;gap:10px;"><span style="flex:1;font-size:13px;line-height:1.8;">📱 برای دسترسی سریع، برنامه را روی گوشی نصب کنید.</span><button class="btn" id="btnInstall" style="background:#4f46e5;padding:10px 14px;">نصب</button><button class="sm" id="btnNoBanner" aria-label="بستن">✕</button></div>';
+    }
+    $('main').addEventListener('click', function(e) {
+        if (e.target.id === 'btnInstall') doInstall();
+        else if (e.target.id === 'btnNoBanner') { bannerOff = true; try { S.setItem('nobanner', '1'); } catch(x) {} render(); }
     });
 
     load(); render();

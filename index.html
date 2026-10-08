@@ -1809,7 +1809,7 @@
             </div>
 
             <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px;padding:16px;border-top:1px dashed var(--border);">
-                📒 دفتر انضباطی - نسخهٔ <span id="appVersionLabel">۱.۱.۱</span><br>
+                📒 دفتر انضباطی - نسخهٔ <span id="appVersionLabel">۱.۲.۰</span><br>
                 🎨 طراح: یوسف معصومی
             </div>
         </div>
@@ -1923,7 +1923,7 @@
     <div class="modal" style="max-width:680px;">
         <h2 class="modal-title">📨 دریافت گزارش حضور و غیاب معلم</h2>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.9;">
-            پیام معلم را از شاد/ایتا/بله کپی کنید و اینجا بچسبانید. می‌توانید چند پیام را پشت هم بچسبانید.
+            پیام‌های معلم‌ها را از چت شاد/ایتا/بله کپی کنید و اینجا بچسبانید. می‌توانید همهٔ پیام‌های چت را یک‌جا انتخاب و کپی کنید؛ برنامه خودش گزارش‌ها را از میان متن پیدا می‌کند.
         </p>
         <button class="btn btn-outline btn-sm" id="btnInboxPaste" style="margin-bottom:8px;">📋 چسباندن از کلیپ‌بورد</button>
         <textarea class="form-textarea" id="inboxText" style="min-height:110px;font-size:13px;" placeholder="پیام معلم را اینجا بچسبانید..."></textarea>
@@ -3681,27 +3681,66 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     function inDigits(v) { return String(v == null ? '' : v).replace(/[۰-۹]/g, function(d) { return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); }).replace(/[٠-٩]/g, function(d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); }); }
     function inUnb64(b) { return decodeURIComponent(escape(atob(b))); }
     function inStKey(s) { var c = inDigits(s.codemelli || '').replace(/\D/g, ''); return c || 'n:' + inNorm((s.family || '') + ' ' + (s.name || '')); }
+    // کلید کوتاه (آخرین L رقم کد ملی) برای گزارش‌های فرمت ۲
+    function inSfx(s, L) { var c = inDigits(s.codemelli || '').replace(/\D/g, ''); return c ? c.slice(-L) : 'n:' + inNorm((s.family || '') + ' ' + (s.name || '')).replace(/[,|]/g, ' '); }
+    function inList(t) { return String(t || '').split(',').map(function(x) { x = x.trim(); return x.indexOf('n:') === 0 ? x : inDigits(x); }).filter(Boolean); }
 
+    // همهٔ گزارش‌های داخل متن را پیدا می‌کند (فرمت کوتاه DB2 و فرمت قدیمی DB1)
     function inboxParse(text) {
-        var out = [], re = /DB1\[([^\]]+)\]/g, m;
-        while ((m = re.exec(text))) {
+        var found = [], m;
+        var re2 = /DB2\|([\d۰-۹٠-٩]+)\|([^|\n]+)\|([\d۰-۹٠-٩]{4}\/[\d۰-۹٠-٩]{2}\/[\d۰-۹٠-٩]{2})\|([^|\n]*)\|([^|\n]*)\|([^|\n]*)(?:\|([^\n]*))?/g;
+        while ((m = re2.exec(text))) {
+            found.push({ v: 2, pos: m.index, L: parseInt(inDigits(m[1]), 10), c: m[2].trim(), d: inDigits(m[3]), u: inList(m[4]), j: inList(m[5]), l: inList(m[6]), t: (m[7] || '').trim() });
+        }
+        var re1 = /DB1\[([^\]]+)\]/g;
+        while ((m = re1.exec(text))) {
             try {
                 var p = JSON.parse(inUnb64(m[1].replace(/\s+/g, '')));
-                if (!p || p.v !== 1 || !p.c || !p.d || !Array.isArray(p.s)) continue;
-                out.push(p);
+                if (p && p.v === 1 && p.c && p.d && Array.isArray(p.s)) found.push({ v: 1, pos: m.index, c: p.c, d: p.d, t: p.t || '', s: p.s });
             } catch(e) {}
         }
-        return out;
+        found.sort(function(a, b) { return a.pos - b.pos; });
+        // اگر یک کلاس در یک روز چند بار فرستاده شده، آخری معتبر است
+        var byKey = {}, order = [];
+        found.forEach(function(r) {
+            var k = inNorm(r.c) + '|' + r.d;
+            if (byKey[k] === undefined) { byKey[k] = order.length; order.push(r); }
+            else { order[byKey[k]] = r; }
+        });
+        return order;
     }
 
     function inboxDateKeyOk(d) { return /^\d{4}\/\d{2}\/\d{2}$/.test(d); }
 
-    // آمارِ «امروز کدام کلاس‌ها حضور و غیاب ثبت کرده‌اند»
+    // وضعیت هر دانش‌آموز کلاس مقصد بر اساس گزارش
+    function inboxResolve(r, cls) {
+        var day = {}, unmatched = 0, students = cls.students || [];
+        if (r.v === 2) {
+            var map = {};
+            students.forEach(function(s) { var k = inSfx(s, r.L); (map[k] = map[k] || []).push(s); day[s.id] = 'present'; });
+            [['u', 'absent_u'], ['j', 'absent_j'], ['l', 'late']].forEach(function(p) {
+                r[p[0]].forEach(function(k) {
+                    var arr = map[k];
+                    if (arr && arr.length === 1) day[arr[0].id] = p[1]; else unmatched++;
+                });
+            });
+        } else {
+            var m1 = {};
+            students.forEach(function(s) { m1[inStKey(s)] = s; });
+            r.s.forEach(function(e) {
+                var s = m1[e[0]], st = ST_FROM_CODE[e[1]];
+                if (!s || !st) { unmatched++; return; }
+                day[s.id] = st;
+            });
+        }
+        return { day: day, unmatched: unmatched };
+    }
+
+    // آمارِ «کدام کلاس‌ها در این روز حضور و غیاب ثبت کرده‌اند»
     function inboxStatusFor(date) {
         return appData.classes.map(function(c) {
             var day = attendanceData[getAttKey(c.className, date)] || {};
-            var n = Object.keys(day).length;
-            return { cls: c, done: n > 0, count: n };
+            return { cls: c, done: Object.keys(day).length > 0 };
         });
     }
     function updateInboxStatus() {
@@ -3713,51 +3752,56 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     }
 
     function renderInboxStatus() {
-        var date = getTodayJalaliStr();
-        var h = '<div style="font-size:13px;font-weight:700;margin:10px 0 6px;">وضعیت امروز (' + describeJalaliDate(date) + ')</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
-        inboxStatusFor(date).forEach(function(x) {
-            h += '<span class="sida-tag' + (x.done ? ' new' : '') + '" style="font-size:12px;padding:4px 10px;">' + (x.done ? '✅ ' : '⏳ ') + escapeHtml(x.cls.className) + '</span>';
+        // روزِ گزارش‌های چسبانده‌شده؛ اگر چیزی نیست، امروز
+        var date = inboxReports.length ? inboxReports[0].d : getTodayJalaliStr();
+        var pasted = {};
+        inboxReports.forEach(function(r) { if (r.d === date) pasted[inNorm(r.c)] = true; });
+        var st = inboxStatusFor(date), missing = st.filter(function(x) { return !x.done && !pasted[inNorm(x.cls.className)]; });
+        var h = '<div style="font-size:13px;font-weight:700;margin:10px 0 6px;">وضعیت ' + describeJalaliDate(date) + '</div><div style="display:flex;flex-wrap:wrap;gap:6px;">';
+        st.forEach(function(x) {
+            var ok = x.done || pasted[inNorm(x.cls.className)];
+            h += '<span class="sida-tag' + (ok ? ' new' : '') + '" style="font-size:12px;padding:4px 10px;">' + (ok ? '✅ ' : '⏳ ') + escapeHtml(x.cls.className) + '</span>';
         });
-        document.getElementById('inboxStatus').innerHTML = h + '</div>';
+        h += '</div>';
+        if (st.length) h += '<div style="font-size:12.5px;margin-top:6px;color:' + (missing.length ? '#92400e' : '#065f46') + ';">' +
+            (missing.length ? 'گزارش نرسیده از: ' + missing.map(function(x) { return escapeHtml(x.cls.className); }).join('، ') : 'گزارش همهٔ کلاس‌ها رسیده است ✔') + '</div>';
+        document.getElementById('inboxStatus').innerHTML = h;
     }
 
     function renderInboxReports() {
         var box = document.getElementById('inboxList');
-        if (!inboxReports.length) { box.innerHTML = ''; document.getElementById('btnInboxApply').disabled = true; return; }
+        if (!inboxReports.length) { box.innerHTML = ''; document.getElementById('btnInboxApply').disabled = true; renderInboxStatus(); return; }
         var h = '';
         inboxReports.forEach(function(r, i) {
-            var cls = appData.classes.filter(function(c) { return inNorm(c.className) === inNorm(r.c); })[0];
-            if (cls && r.target === undefined) r.target = appData.classes.indexOf(cls);
-            var counts = { present: 0, late: 0, absent_j: 0, absent_u: 0 };
-            r.s.forEach(function(e) { var s = ST_FROM_CODE[e[1]]; if (s) counts[s]++; });
-            var tcls = r.target !== undefined && r.target >= 0 ? appData.classes[r.target] : null;
-            var exists = tcls && attendanceData[getAttKey(tcls.className, r.d)];
-            var unmatched = 0, abs = [];
+            if (r.target === undefined) {
+                var cls0 = appData.classes.filter(function(c) { return inNorm(c.className) === inNorm(r.c); })[0];
+                r.target = cls0 ? appData.classes.indexOf(cls0) : -1;
+            }
+            var tcls = r.target >= 0 ? appData.classes[r.target] : null;
+            var counts = { present: 0, late: 0, absent_j: 0, absent_u: 0 }, abs = [], unmatched = 0, exists = false;
             if (tcls) {
-                var map = {};
-                (tcls.students || []).forEach(function(s) { map[inStKey(s)] = s; });
-                r.s.forEach(function(e) {
-                    var s = map[e[0]];
-                    if (!s) { unmatched++; return; }
-                    var st = ST_FROM_CODE[e[1]];
-                    if (st && st !== 'present') abs.push(((s.family || '') + ' ' + (s.name || '')).trim() + ' (' + ST_FA[st] + ')');
+                var res = inboxResolve(r, tcls); unmatched = res.unmatched;
+                (tcls.students || []).forEach(function(s) {
+                    var st = res.day[s.id]; if (!st) return;
+                    counts[st]++;
+                    if (st !== 'present') abs.push(((s.family || '') + ' ' + (s.name || '')).trim() + ' (' + ST_FA[st] + ')');
                 });
+                exists = !!attendanceData[getAttKey(tcls.className, r.d)];
             }
             h += '<div class="sida-row" style="display:block;cursor:default;">' +
                 '<label style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;cursor:pointer;"><input type="checkbox" class="inb-chk" data-i="' + i + '" ' + (tcls ? 'checked' : 'disabled') + '> ' +
-                '<span class="sida-name">' + escapeHtml(r.c) + ' <small>— ' + describeJalaliDate(r.d) + (r.t ? ' — ' + escapeHtml(r.t) : '') + '</small></span></label>' +
-                '<div style="font-size:12.5px;margin:6px 0;color:var(--text-muted);">حاضر ' + toPersianNum(counts.present) + ' | غایب ' + toPersianNum(counts.absent_j + counts.absent_u) + ' | تأخیر ' + toPersianNum(counts.late) + '</div>';
-            if (!tcls) {
-                h += '<div style="font-size:12.5px;color:#dc2626;margin-bottom:6px;">کلاسی با این نام پیدا نشد. کلاس مقصد را انتخاب کنید:</div><select class="form-select inb-map" data-i="' + i + '"><option value="">— انتخاب —</option>' +
-                    appData.classes.map(function(c, k) { return '<option value="' + k + '">' + escapeHtml(c.className) + '</option>'; }).join('') + '</select>';
-            }
+                '<span class="sida-name">' + escapeHtml(r.c) + ' <small>— ' + describeJalaliDate(r.d) + (r.t ? ' — ' + escapeHtml(r.t) : '') + '</small></span></label>';
+            if (tcls) h += '<div style="font-size:12.5px;margin:6px 0;color:var(--text-muted);">حاضر ' + toPersianNum(counts.present) + ' | غایب ' + toPersianNum(counts.absent_j + counts.absent_u) + ' | تأخیر ' + toPersianNum(counts.late) + '</div>';
+            else h += '<div style="font-size:12.5px;color:#dc2626;margin:6px 0;">کلاسی با این نام پیدا نشد. کلاس مقصد را انتخاب کنید:</div><select class="form-select inb-map" data-i="' + i + '"><option value="">— انتخاب —</option>' +
+                appData.classes.map(function(c, k) { return '<option value="' + k + '">' + escapeHtml(c.className) + '</option>'; }).join('') + '</select>';
             if (abs.length) h += '<div style="font-size:12.5px;line-height:1.9;">' + abs.map(escapeHtml).join('، ') + '</div>';
             if (exists) h += '<div style="font-size:12px;color:#92400e;margin-top:4px;">⚠️ برای این روز قبلاً حضور و غیاب ثبت شده؛ با این گزارش جایگزین می‌شود.</div>';
-            if (unmatched) h += '<div style="font-size:12px;color:#92400e;margin-top:4px;">' + toPersianNum(unmatched) + ' نفر از گزارش در لیست این کلاس پیدا نشد و نادیده گرفته می‌شود.</div>';
+            if (unmatched) h += '<div style="font-size:12px;color:#92400e;margin-top:4px;">' + toPersianNum(unmatched) + ' مورد از گزارش با لیست این کلاس نخواند و نادیده گرفته می‌شود.</div>';
             h += '</div>';
         });
         box.innerHTML = h;
         updateInboxBtn();
+        renderInboxStatus();
     }
     function updateInboxBtn() {
         var n = document.querySelectorAll('.inb-chk:checked').length, b = document.getElementById('btnInboxApply');
@@ -3767,10 +3811,13 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
 
     function inboxCheck() {
         var txt = document.getElementById('inboxText').value;
+        var old = {};
+        inboxReports.forEach(function(r) { old[inNorm(r.c) + '|' + r.d] = r.target; });
         inboxReports = inboxParse(txt);
+        inboxReports.forEach(function(r) { var k = inNorm(r.c) + '|' + r.d; if (old[k] !== undefined && old[k] >= 0) r.target = old[k]; });
         var st = document.getElementById('inboxMsg');
         if (!txt.trim()) { st.textContent = ''; renderInboxReports(); return; }
-        if (!inboxReports.length) { st.style.color = '#dc2626'; st.textContent = '❌ گزارشی در متن پیدا نشد. پیام را کامل (با خط «DB1[…]» در انتها) کپی کنید.'; }
+        if (!inboxReports.length) { st.style.color = '#dc2626'; st.textContent = '❌ گزارشی در متن پیدا نشد. پیام‌ها را کامل کپی کنید (خط «DB2|…» هم باید باشد).'; }
         else { st.style.color = 'var(--text-muted)'; st.textContent = '✅ ' + toPersianNum(inboxReports.length) + ' گزارش پیدا شد.'; }
         renderInboxReports();
     }
@@ -3792,15 +3839,14 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     document.getElementById('btnInboxPaste').addEventListener('click', function() {
         var ta = document.getElementById('inboxText');
         if (navigator.clipboard && navigator.clipboard.readText) {
-            navigator.clipboard.readText().then(function(t) { ta.value = (ta.value ? ta.value + '\n\n' : '') + t; inboxCheck(); },
+            navigator.clipboard.readText().then(function(t) { ta.value = (ta.value ? ta.value + '\n' : '') + t; inboxCheck(); },
                 function() { alert('مرورگر اجازهٔ خواندن کلیپ‌بورد را نداد. داخل کادر نگه دارید و «Paste» را بزنید.'); ta.focus(); });
         } else { alert('داخل کادر نگه دارید و «Paste» را بزنید.'); ta.focus(); }
     });
     document.getElementById('inboxList').addEventListener('change', function(e) {
         if (e.target.classList.contains('inb-map')) {
             var i = parseInt(e.target.getAttribute('data-i'), 10);
-            inboxReports[i].target = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
-            if (inboxReports[i].target === undefined) inboxReports[i].target = -1;
+            inboxReports[i].target = e.target.value === '' ? -1 : parseInt(e.target.value, 10);
             renderInboxReports();
         } else updateInboxBtn();
     });
@@ -3810,22 +3856,16 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
             var r = inboxReports[parseInt(ch.getAttribute('data-i'), 10)];
             var cls = r.target >= 0 ? appData.classes[r.target] : null;
             if (!cls || !inboxDateKeyOk(r.d)) return;
-            var map = {};
-            (cls.students || []).forEach(function(s) { map[inStKey(s)] = s; });
-            var day = {};
-            r.s.forEach(function(e) {
-                var s = map[e[0]], st = ST_FROM_CODE[e[1]];
-                if (!s || !st) { skipped++; return; }
-                day[s.id] = st;
-            });
-            attendanceData[getAttKey(cls.className, r.d)] = day;
+            var res = inboxResolve(r, cls);
+            skipped += res.unmatched;
+            attendanceData[getAttKey(cls.className, r.d)] = res.day;
             applied++;
         });
         saveAttendance();
         document.getElementById('modalInbox').classList.remove('open');
         try { if (currentPageName === 'attendance') renderAttendance(); } catch(e) {}
         try { refreshHome(); } catch(e) {}
-        alert('✅ ' + toPersianNum(applied) + ' گزارش در حضور و غیاب ثبت شد.' + (skipped ? '\n(' + toPersianNum(skipped) + ' ردیف بی‌تطبیق نادیده گرفته شد)' : ''));
+        alert('✅ ' + toPersianNum(applied) + ' گزارش در حضور و غیاب ثبت شد.' + (skipped ? '\n(' + toPersianNum(skipped) + ' مورد بی‌تطبیق نادیده گرفته شد)' : ''));
     });
 
 /* ═══════════════════════════════════════════════════
@@ -5346,7 +5386,7 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     /* ═══════════════════════════════════════════════════
        🔄 به‌روزرسانی از GitHub
        ═══════════════════════════════════════════════════ */
-    var APP_VERSION = '1.1.1';
+    var APP_VERSION = '1.2.0';
     var realLS = window.localStorage, UPD_KEY = 'cmupd_v1';
     var pendingUpdate = null;
 
