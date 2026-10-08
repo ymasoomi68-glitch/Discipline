@@ -1437,6 +1437,7 @@
             <div class="toolbar">
                 <button class="btn btn-primary" id="btnAddClass">➕ افزودن کلاس</button>
                 <button class="btn btn-success" id="btnAddFromSida">📥 افزودن از سیدا</button>
+                <button class="btn btn-outline" id="btnExportTeacher">📤 فایل کلاس برای معلم</button>
             </div>
 
             <div id="classesContainer">
@@ -1808,7 +1809,7 @@
             </div>
 
             <div style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:20px;padding:16px;border-top:1px dashed var(--border);">
-                📒 دفتر انضباطی - نسخهٔ <span id="appVersionLabel">۱.۱.۰</span><br>
+                📒 دفتر انضباطی - نسخهٔ <span id="appVersionLabel">۱.۱.۱</span><br>
                 🎨 طراح: یوسف معصومی
             </div>
         </div>
@@ -1896,6 +1897,23 @@
         <div class="modal-actions">
             <button class="btn btn-outline" data-close-modal="modalSida">انصراف</button>
             <button class="btn btn-success" id="btnDoSidaImport" disabled>📥 ورود کلاس‌ها</button>
+        </div>
+    </div>
+</div>
+
+<!-- مودال ساخت فایل کلاس برای معلم -->
+<div class="modal-overlay" id="modalExport">
+    <div class="modal" style="max-width:560px;">
+        <h2 class="modal-title">📤 فایل کلاس برای معلم</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;line-height:1.9;">
+            کلاس‌هایی را که می‌خواهید به معلم بدهید علامت بزنید و فایل را بسازید. معلم آن را در «اپ معلم ← تنظیمات ← ورود کلاس از فایل JSON» وارد می‌کند. در فایل فقط نام، نام خانوادگی، نام پدر و کد ملی هست.
+        </p>
+        <label class="sida-row sida-all"><input type="checkbox" id="expAll"> <b>انتخاب همه</b></label>
+        <div id="expList" style="max-height:280px;overflow:auto;"></div>
+        <div class="modal-actions" style="flex-wrap:wrap;">
+            <button class="btn btn-outline" data-close-modal="modalExport">بستن</button>
+            <button class="btn btn-success" id="btnExpShare" disabled>📤 ارسال مستقیم</button>
+            <button class="btn btn-primary" id="btnExpDownload" disabled>⬇️ دانلود فایل</button>
         </div>
     </div>
 </div>
@@ -3593,6 +3611,66 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     /* === افزودنی‌های JS قدم‌های بعدی اینجا === */
 
         /* ═══════════════════════════════════════════════════
+       📤 ساخت فایل کلاس برای معلم‌ها (JSON)
+       ═══════════════════════════════════════════════════ */
+    function exportPick() {
+        var out = [];
+        document.querySelectorAll('.exp-chk:checked').forEach(function(ch) {
+            var c = appData.classes[parseInt(ch.getAttribute('data-i'), 10)];
+            if (!c) return;
+            out.push({
+                className: c.className,
+                gradeName: c.gradeName || '',
+                students: (c.students || []).map(function(s) { return { name: s.name || '', family: s.family || '', father: s.father || '', codemelli: s.codemelli || '' }; })
+            });
+        });
+        return out;
+    }
+    function exportFileInfo() {
+        var list = exportPick();
+        var base = list.length === 1 ? list[0].className.replace(/[۰-۹]/g, function(d) { return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); }).replace(/[^A-Za-z0-9]+/g, '') : '';
+        var name = list.length === 1 ? 'class_' + (base || 'file') : 'classes_' + getTodayJalaliStr().replace(/\//g, '-');
+        return { list: list, name: name + '.json' };
+    }
+    function updateExportBtns() {
+        var n = document.querySelectorAll('.exp-chk:checked').length;
+        document.getElementById('btnExpDownload').disabled = n === 0;
+        document.getElementById('btnExpShare').disabled = n === 0;
+        document.getElementById('btnExpDownload').textContent = n ? '⬇️ دانلود فایل (' + toPersianNum(n) + ' کلاس)' : '⬇️ دانلود فایل';
+    }
+    document.getElementById('btnExportTeacher').addEventListener('click', function() {
+        if (!appData.classes.length) { alert('❌ ابتدا کلاس‌ها را اضافه کنید.'); return; }
+        document.getElementById('expList').innerHTML = appData.classes.map(function(c, i) {
+            return '<label class="sida-row"><input type="checkbox" class="exp-chk" data-i="' + i + '"> <span class="sida-name">' + escapeHtml(c.className) +
+                (c.gradeName ? ' <small>(' + escapeHtml(c.gradeName) + ')</small>' : '') + '</span><span class="sida-cnt">' + toPersianNum((c.students || []).length) + ' نفر</span></label>';
+        }).join('');
+        document.getElementById('expAll').checked = false;
+        document.getElementById('btnExpShare').style.display = (navigator.canShare && navigator.share) ? '' : 'none';
+        updateExportBtns();
+        document.getElementById('modalExport').classList.add('open');
+    });
+    document.getElementById('expList').addEventListener('change', updateExportBtns);
+    document.getElementById('expAll').addEventListener('change', function() {
+        var v = this.checked;
+        document.querySelectorAll('.exp-chk').forEach(function(c) { c.checked = v; });
+        updateExportBtns();
+    });
+    function exportBlob(info) { return new Blob(['﻿' + JSON.stringify({ classes: info.list }, null, 2)], { type: 'application/json;charset=utf-8' }); }
+    document.getElementById('btnExpDownload').addEventListener('click', function() {
+        var info = exportFileInfo(); if (!info.list.length) return;
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(exportBlob(info)); a.download = info.name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(a.href); }, 1500);
+    });
+    document.getElementById('btnExpShare').addEventListener('click', function() {
+        var info = exportFileInfo(); if (!info.list.length) return;
+        var f = new File([exportBlob(info)], info.name, { type: 'application/json' });
+        if (navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: 'فایل کلاس برای معلم' }).catch(function() {});
+        else alert('این مرورگر اشتراک فایل ندارد؛ «دانلود فایل» را بزنید و فایل را دستی بفرستید.');
+    });
+
+    /* ═══════════════════════════════════════════════════
        📨 دریافت گزارش حضور و غیاب از معلم‌ها (پیام متنی)
        ═══════════════════════════════════════════════════ */
     var inboxReports = [];
@@ -5268,7 +5346,7 @@ if (window.__CM_LOCKED) { if (document.readyState==='loading') document.addEvent
     /* ═══════════════════════════════════════════════════
        🔄 به‌روزرسانی از GitHub
        ═══════════════════════════════════════════════════ */
-    var APP_VERSION = '1.1.0';
+    var APP_VERSION = '1.1.1';
     var realLS = window.localStorage, UPD_KEY = 'cmupd_v1';
     var pendingUpdate = null;
 

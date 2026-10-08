@@ -2,7 +2,7 @@
    📱 Service Worker - دفتر انضباطی
    ═══════════════════════════════════════════════════ */
 
-var CACHE_NAME = 'discipline-book-v4';
+var CACHE_NAME = 'discipline-book-v5';
 var CACHE_FILES = [
     './',
     './index.html',
