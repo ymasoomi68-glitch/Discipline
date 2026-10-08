@@ -1,18 +1,24 @@
 {
   "app": "discipline-book",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "notes": [
-    "راست‌چین شدن نوشته‌های کاشی‌های صفحهٔ اصلی",
-    "نمایش روزهای غیبت و تأخیر هر دانش‌آموز در گزارش ماهانهٔ حضور و غیاب (صفحه و چاپ)"
+    "اپ معلم (teacher.html): ثبت حضور و غیاب و ارسال پیام به معاون",
+    "دریافت گزارش معلم‌ها در اپ معاون با چسباندن پیام"
   ],
   "files": [
     "index.html",
+    "teacher.html",
     "sw.js",
     "manifest.json",
+    "manifest-teacher.json",
     "icon-192.png",
     "icon-512.png",
     "icon-maskable-512.png",
+    "icon-t-192.png",
+    "icon-t-512.png",
+    "icon-t-maskable-512.png",
     "apple-touch-icon.png",
+    "apple-touch-icon-t.png",
     "favicon.png"
   ]
 }
