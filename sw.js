@@ -2,11 +2,16 @@
    📱 Service Worker - دفتر انضباطی
    ═══════════════════════════════════════════════════ */
 
-var CACHE_NAME = 'discipline-book-v1';
+var CACHE_NAME = 'discipline-book-v8';
 var CACHE_FILES = [
     './',
     './index.html',
+    './teacher.html',
     './manifest.json',
+    './manifest-teacher.json',
+    './icon-t-192.png',
+    './icon-t-512.png',
+    './apple-touch-icon-t.png',
     './icon-192.png',
     './icon-512.png',
     './icon-maskable-512.png',

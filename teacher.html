@@ -39,14 +39,14 @@
     .top { background: linear-gradient(135deg, #065f46, #10b981); color: #fff; padding: 14px 16px calc(14px); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 20; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
     .top h1 { margin: 0; font-size: 18px; font-weight: 800; }
     .top .sub { font-size: 12px; opacity: .9; }
-    .icon-btn { background: rgba(255,255,255,.2); border: 0; color: #fff; font-size: 20px; width: 42px; height: 42px; border-radius: 12px; }
+    .icon-btn { background: #ecfdf5; border: 0; color: #065f46; font-size: 20px; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
     .wrap { max-width: 640px; margin: 0 auto; padding: 14px 12px; }
     .card { background: var(--card); border-radius: 16px; padding: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.06); margin-bottom: 12px; }
     .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
-    .chip { flex: 0 0 auto; border: 2px solid var(--border); background: #fff; border-radius: 20px; padding: 8px 16px; font-weight: 700; font-size: 14px; color: var(--muted); }
+    .chip { flex: 0 0 auto; border: 2px solid var(--border); background: #fff; border-radius: 20px; padding: 8px 16px; font-weight: 700; font-size: 14px; color: var(--muted); text-align: center; min-width: 96px; white-space: nowrap; }
     .chip.on { background: var(--g1); border-color: var(--g1); color: #fff; }
     .datebar { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-    .datebar .d { flex: 1; text-align: center; font-weight: 800; font-size: 15px; line-height: 1.5; }
+    .datebar .d { flex: 1; text-align: center; font-weight: 800; font-size: 15px; line-height: 1.5; padding: 8px 10px; border-radius: 16px; border: 2px solid #6ee7b7; background: linear-gradient(135deg, #ecfdf5, #d1fae5); color: #065f46; box-shadow: 0 3px 10px rgba(16,185,129,.18), inset 0 1px 0 #fff; }
     .datebar .d small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
     .sm { border: 1px solid var(--border); background: #fff; border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 700; }
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
@@ -89,8 +89,8 @@
 </head>
 <body>
 <header class="top">
-    <div><h1>📋 حضور و غیاب</h1><div class="sub" id="whoLbl">برنامهٔ معلم</div></div>
-    <button class="icon-btn" id="btnSettings" aria-label="تنظیمات">⚙️</button>
+    <div><h1>📋 سامانه حضور و غیاب</h1><div class="sub" id="whoLbl">برنامهٔ معلم</div></div>
+    <button class="icon-btn" id="btnSettings" aria-label="تنظیمات"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#065f46" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
 </header>
 
 <main class="wrap" id="main"></main>
@@ -107,11 +107,11 @@
     <input type="text" id="inTeacher" placeholder="مثلاً: خانم احمدی">
     <button class="btn block" id="btnSaveName">💾 ذخیره نام</button>
     <button class="btn block" id="btnInstall2" style="background:#4f46e5;">📱 نصب روی این دستگاه</button>
-    <button class="btn o block" id="btnImport">📥 ورود کلاس از فایل JSON سیدا</button>
+    <button class="btn o block" id="btnImport">📥 ورود کلاس از فایل ارسالی معاون</button>
     <button class="btn o block" id="btnManage">👥 مدیریت کلاس‌ها و دانش‌آموزان</button>
     <button class="btn o block" id="btnHistory">🕘 ارسال‌های قبلی</button>
     <button class="btn o block" data-close="ovSettings">بستن</button>
-    <p style="text-align:center;margin-top:12px;">نسخهٔ معلم ۱.۲.۰</p>
+    <p style="text-align:center;margin-top:12px;">نسخهٔ ۱.۲.۲</p>
 </div></div>
 
 <!-- ورود JSON -->
@@ -215,6 +215,7 @@
     function saveCfg() { S.setItem('cfg', JSON.stringify(cfg)); }
     function curCls() { return classes.filter(function(c) { return c.id === cfg.cur; })[0] || classes[0] || null; }
     function sortSt(c) { c.students.sort(function(a, b) { return ((a.family || '') + (a.name || '')).localeCompare((b.family || '') + (b.name || ''), 'fa'); }); }
+    function cname(n) { var t = String(n == null ? '' : n).trim().replace(/([^\d۰-۹\s])\s*([\d۰-۹])/, '$1 $2').replace(/\d/g, function(d) { return '۰۱۲۳۴۵۶۷۸۹'.charAt(d); }); return /^کلاس/.test(t) ? t : 'کلاس ' + t; }
     function dayMap(c, create) { var k = c.className + '|' + curDate; if (!att[k] && create) att[k] = {}; return att[k] || {}; }
 
     /* ===== نمایش ===== */
@@ -224,13 +225,13 @@
         if (!c) {
             $('bar').style.display = 'none';
             m.innerHTML = ib + '<div class="card"><div class="empty"><div class="big">📚</div><b>هنوز کلاسی ندارید</b><br>فایل JSON سیدا را که معاون داده وارد کنید.</div>' +
-                '<button class="btn block" id="e1">📥 ورود کلاس از فایل JSON سیدا</button><button class="btn o block" id="e2">➕ ساخت کلاس دستی</button></div>';
+                '<button class="btn block" id="e1">📥 ورود کلاس از فایل ارسالی معاون</button><button class="btn o block" id="e2">➕ ساخت کلاس دستی</button></div>';
             $('e1').onclick = openImport; $('e2').onclick = function() { addClassForm(); };
             return;
         }
         cfg.cur = c.id;
         var dm = dayMap(c), h = ib;
-        h += '<div class="card"><div class="chips">' + classes.map(function(x) { return '<button class="chip' + (x.id === c.id ? ' on' : '') + '" data-c="' + x.id + '">' + esc(x.className) + '</button>'; }).join('') + '</div>';
+        h += '<div class="card"><div class="chips">' + classes.map(function(x) { return '<button class="chip' + (x.id === c.id ? ' on' : '') + '" data-c="' + x.id + '">' + esc(cname(x.className)) + '</button>'; }).join('') + '</div>';
         h += '<div class="datebar"><button class="sm" id="dPrev">◀</button><div class="d">' + describe(curDate) + '<small>' + (curDate === todayStr() ? 'امروز' : '<a href="#" id="dToday" style="color:#059669;">برگشت به امروز</a>') + '</small></div><button class="sm" id="dNext">▶</button></div></div>';
         var n = { present: 0, late: 0, absent: 0, none: 0 };
         c.students.forEach(function(s) { var v = dm[s.id]; if (v === 'present') n.present++; else if (v === 'late') n.late++; else if (v === 'absent_j' || v === 'absent_u') n.absent++; else n.none++; });
@@ -291,7 +292,7 @@
         var L = pickL(c), u = [], j = [], l = [];
         c.students.forEach(function(s) { var v = dm[s.id] || 'present'; if (v === 'absent_u') u.push(sfx(s, L)); else if (v === 'absent_j') j.push(sfx(s, L)); else if (v === 'late') l.push(sfx(s, L)); });
         var na = u.length + j.length, p = curDate.split('/');
-        var head = (na || l.length ? '📋 ' : '✅ ') + c.className + ' | ' + fa(parseInt(p[2], 10)) + ' ' + MN[parseInt(p[1], 10) - 1] + ' | ' + (na || l.length ? 'غایب ' + fa(na) + '، تأخیر ' + fa(l.length) : 'همه حاضر');
+        var head = (na || l.length ? '📋 ' : '✅ ') + cname(c.className) + ' | ' + fa(parseInt(p[2], 10)) + ' ' + MN[parseInt(p[1], 10) - 1] + ' | ' + (na || l.length ? 'غایب ' + fa(na) + '، تأخیر ' + fa(l.length) : 'همه حاضر');
         var code = 'DB2|' + L + '|' + c.className.replace(/[|\n]/g, ' ') + '|' + curDate + '|' + u.join(',') + '|' + j.join(',') + '|' + l.join(',') + '|' + (cfg.teacher || '').replace(/[|\n]/g, ' ');
         return head + '\n' + code;
     }
@@ -356,7 +357,7 @@
             try {
                 parsed = normalizeSida(JSON.parse(String(ev.target.result).replace(/^﻿/, '')));
                 $('impStatus').textContent = '✅ ' + fa(parsed.length) + ' کلاس پیدا شد؛ کلاس خودتان را علامت بزنید.';
-                $('impList').innerHTML = parsed.map(function(c, i) { return '<label class="pick"><input type="checkbox" data-i="' + i + '"><b>' + esc(c.className) + '</b><small>' + fa(c.students.length) + ' نفر</small></label>'; }).join('');
+                $('impList').innerHTML = parsed.map(function(c, i) { return '<label class="pick"><input type="checkbox" data-i="' + i + '"><b>' + esc(cname(c.className)) + '</b><small>' + fa(c.students.length) + ' نفر</small></label>'; }).join('');
                 upd();
             } catch(e) { parsed = []; $('impStatus').textContent = '❌ ' + (e instanceof SyntaxError ? 'فایل JSON معتبر نیست.' : e.message); $('impList').innerHTML = ''; upd(); }
         };
@@ -392,14 +393,14 @@
         if (classes.some(function(c) { return c.className === v[0]; })) { toast('این کلاس هست'); return false; }
         var c = { id: genId(), className: norm(v[0]), gradeName: norm(v[1]), students: [] }; classes.push(c); cfg.cur = c.id; saveC(); saveCfg(); render(); } ); }
     function manage() {
-        var h = classes.map(function(c) { return '<div class="li"><span><b>' + esc(c.className) + '</b> <small style="color:#64748b">' + fa(c.students.length) + ' نفر</small></span>' +
+        var h = classes.map(function(c) { return '<div class="li"><span><b>' + esc(cname(c.className)) + '</b> <small style="color:#64748b">' + fa(c.students.length) + ' نفر</small></span>' +
             '<button class="x" style="background:#dbeafe;color:#1d4ed8;" data-st="' + c.id + '">دانش‌آموزان</button><button class="x" data-dc="' + c.id + '">حذف</button></div>'; }).join('') || '<div class="empty">کلاسی نیست</div>';
         $('manageBody').innerHTML = h + '<button class="btn block" id="mAdd">➕ کلاس جدید</button>'; openOv('ovManage');
     }
     $('btnManage').onclick = function() { closeOv('ovSettings'); manage(); };
     function students(cid) {
         var c = classes.filter(function(x) { return x.id === cid; })[0]; if (!c) return;
-        $('manageBody').innerHTML = '<p><b>' + esc(c.className) + '</b></p>' + (c.students.map(function(s, i) { return '<div class="li"><span>' + fa(i + 1) + '. ' + esc((s.family || '') + ' ' + (s.name || '')) + '</span><button class="x" data-ds="' + c.id + '|' + s.id + '">✕</button></div>'; }).join('') || '<div class="empty">دانش‌آموزی نیست</div>') +
+        $('manageBody').innerHTML = '<p><b>' + esc(cname(c.className)) + '</b></p>' + (c.students.map(function(s, i) { return '<div class="li"><span>' + fa(i + 1) + '. ' + esc((s.family || '') + ' ' + (s.name || '')) + '</span><button class="x" data-ds="' + c.id + '|' + s.id + '">✕</button></div>'; }).join('') || '<div class="empty">دانش‌آموزی نیست</div>') +
             '<button class="btn block" data-as="' + c.id + '">➕ دانش‌آموز جدید</button><button class="btn o block" id="mBack">◀ بازگشت</button>';
     }
     $('manageBody').addEventListener('click', function(e) {
