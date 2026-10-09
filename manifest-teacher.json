@@ -3,7 +3,7 @@
   "short_name": "حضور و غیاب",
   "description": "ثبت حضور و غیاب و ارسال به معاون",
   "start_url": "./teacher.html",
-  "scope": "./",
+  "scope": "./teacher.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#065f46",
