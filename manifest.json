@@ -3,7 +3,7 @@
   "short_name": "دفتر انضباطی",
   "description": "ثبت حضور و غیاب و رفتار دانش‌آموزان",
   "start_url": "./index.html",
-  "scope": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1e2978",
@@ -29,6 +29,5 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ],
-  "id": "./index.html"
+  ]
 }

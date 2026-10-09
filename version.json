@@ -1,24 +1,17 @@
 {
   "app": "discipline-book",
-  "version": "1.2.1",
+  "version": "1.0.0",
   "notes": [
-    "امکان نصب هم‌زمان اپ معاون و اپ معلم روی یک گوشی",
-    "وسط‌چین شدن نوشته‌های کاشی‌های صفحهٔ اصلی"
+    "نسخهٔ اول دفتر انضباطی: حضور و غیاب، رفتار، گزارش انضباطی و ورود از فایل JSON سیدا"
   ],
   "files": [
     "index.html",
-    "teacher.html",
     "sw.js",
     "manifest.json",
-    "manifest-teacher.json",
     "icon-192.png",
     "icon-512.png",
     "icon-maskable-512.png",
-    "icon-t-192.png",
-    "icon-t-512.png",
-    "icon-t-maskable-512.png",
     "apple-touch-icon.png",
-    "apple-touch-icon-t.png",
     "favicon.png"
   ]
 }
