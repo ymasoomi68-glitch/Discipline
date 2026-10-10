@@ -111,14 +111,16 @@
     <button class="btn o block" id="btnManage">👥 مدیریت کلاس‌ها و دانش‌آموزان</button>
     <button class="btn o block" id="btnHistory">🕘 ارسال‌های قبلی</button>
     <button class="btn o block" data-close="ovSettings">بستن</button>
-    <p style="text-align:center;margin-top:12px;">نسخهٔ ۱.۲.۲</p>
+    <p style="text-align:center;margin-top:12px;">نسخهٔ ۱.۲.۳</p>
 </div></div>
 
 <!-- ورود JSON -->
 <div class="ov" id="ovImport"><div class="sheet">
     <h2>📥 ورود کلاس از سیدا</h2>
     <p>فایل JSON را که معاون برایتان فرستاده انتخاب کنید و فقط کلاس خودتان را علامت بزنید.</p>
-    <input type="file" id="fileJson" accept=".json,application/json">
+    <input type="file" id="fileJson">
+    <p style="margin:8px 0 4px;">یا اگر معاون متن کلاس‌ها را فرستاده، آن را اینجا بچسبانید:</p>
+    <textarea id="impText" style="width:100%;min-height:70px;border:1px solid var(--border);border-radius:10px;padding:8px;font-size:12px;direction:ltr;margin-bottom:8px;" placeholder='{"classes":[...]}'></textarea>
     <div id="impStatus" style="font-size:13px;margin-bottom:8px;"></div>
     <div id="impList"></div>
     <button class="btn block" id="btnDoImport" disabled>📥 ورود کلاس‌های انتخاب‌شده</button>
@@ -351,18 +353,20 @@
         });
         if (!out.length) throw new Error('کلاسی در فایل نیست.'); return out;
     }
+    function loadImportText(txt) {
+        try {
+            parsed = normalizeSida(JSON.parse(String(txt).replace(/^\uFEFF/, '').trim()));
+            $('impStatus').textContent = '✅ ' + fa(parsed.length) + ' کلاس پیدا شد؛ کلاس خودتان را علامت بزنید.';
+            $('impList').innerHTML = parsed.map(function(c, i) { return '<label class="pick"><input type="checkbox" data-i="' + i + '"><b>' + esc(cname(c.className)) + '</b><small>' + fa(c.students.length) + ' نفر</small></label>'; }).join('');
+            upd();
+        } catch(e) { parsed = []; $('impStatus').textContent = '❌ ' + (e instanceof SyntaxError ? 'فایل یا متن JSON معتبر نیست.' : e.message); $('impList').innerHTML = ''; upd(); }
+    }
     $('fileJson').onchange = function() {
         var f = this.files[0]; if (!f) return; var r = new FileReader();
-        r.onload = function(ev) {
-            try {
-                parsed = normalizeSida(JSON.parse(String(ev.target.result).replace(/^﻿/, '')));
-                $('impStatus').textContent = '✅ ' + fa(parsed.length) + ' کلاس پیدا شد؛ کلاس خودتان را علامت بزنید.';
-                $('impList').innerHTML = parsed.map(function(c, i) { return '<label class="pick"><input type="checkbox" data-i="' + i + '"><b>' + esc(cname(c.className)) + '</b><small>' + fa(c.students.length) + ' نفر</small></label>'; }).join('');
-                upd();
-            } catch(e) { parsed = []; $('impStatus').textContent = '❌ ' + (e instanceof SyntaxError ? 'فایل JSON معتبر نیست.' : e.message); $('impList').innerHTML = ''; upd(); }
-        };
+        r.onload = function(ev) { loadImportText(ev.target.result); };
         r.readAsText(f, 'UTF-8');
     };
+    $('impText').oninput = function() { if (this.value.trim()) loadImportText(this.value); };
     function upd() { var n = $('impList').querySelectorAll('input:checked').length; $('btnDoImport').disabled = !n; $('btnDoImport').textContent = n ? '📥 ورود ' + fa(n) + ' کلاس' : '📥 ورود کلاس‌های انتخاب‌شده'; }
     $('impList').onchange = upd;
     $('btnDoImport').onclick = function() {
